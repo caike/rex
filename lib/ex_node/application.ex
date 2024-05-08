@@ -1,6 +1,4 @@
 defmodule ExNode.Application do
-  # See https://hexdocs.pm/elixir/Application.html
-  # for more information on OTP Applications
   @moduledoc false
 
   use Application
@@ -8,13 +6,14 @@ defmodule ExNode.Application do
   @impl true
   def start(_type, _args) do
     children = [
-      # Starts a worker by calling: ExNode.Worker.start_link(arg)
-      # {ExNode.Worker, arg}
+      {ExNode.Client, client_opts()}
     ]
 
-    # See https://hexdocs.pm/elixir/Supervisor.html
-    # for other strategies and supported options
     opts = [strategy: :one_for_one, name: ExNode.Supervisor]
     Supervisor.start_link(children, opts)
+  end
+
+  defp client_opts do
+    [path: System.fetch_env!("NODE_SOCKET_PATH")]
   end
 end
