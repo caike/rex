@@ -5,7 +5,7 @@ defmodule Rex.ClientStatem do
   alias Rex.LocalStateQueryResponse
   alias Rex.Messages
 
-  defstruct [:path, :socket]
+  defstruct [:path, :socket, :network]
 
   ##############
   # Public API #
@@ -18,6 +18,7 @@ defmodule Rex.ClientStatem do
   def start_link(opts) do
     state = %__MODULE__{
       path: Keyword.fetch!(opts, :path),
+      network: Keyword.get(opts, :network, :mainnet),
       socket: nil
     }
 
@@ -49,13 +50,13 @@ defmodule Rex.ClientStatem do
     {:ok, :disconnected, initial_state, actions}
   end
 
-  def disconnected(:internal, :connect, %{path: path} = state) do
+  def disconnected(:internal, :connect, %{path: path, network: network} = state) do
     opts = [:binary, active: false, send_timeout: 4_000]
 
     # Connect to local unix socket on `path`
     {:ok, socket} = :gen_tcp.connect({:local, path}, 0, opts)
 
-    :ok = :gen_tcp.send(socket, Messages.handshake())
+    :ok = :gen_tcp.send(socket, Messages.handshake(network))
 
     case :gen_tcp.recv(socket, 0, 5_000) do
       {:ok, full_response} ->

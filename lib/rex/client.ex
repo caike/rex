@@ -4,7 +4,7 @@ defmodule Rex.Client do
   alias Rex.LocalStateQueryResponse
   alias Rex.Messages
 
-  defstruct [:socket, :path, :send_timeout, :recv_timeout, :handshake_response]
+  defstruct [:socket, :path, :network, :send_timeout, :recv_timeout, :handshake_response]
 
   def query(pid \\ __MODULE__, query_name) do
     GenServer.call(pid, {:local_state_query, query_name})
@@ -13,6 +13,7 @@ defmodule Rex.Client do
   def start_link(opts) do
     state = %__MODULE__{
       path: Keyword.fetch!(opts, :path),
+      network: Keyword.get(opts, :network, :mainnet),
       send_timeout: Keyword.get(opts, :send_timeout, 4000),
       recv_timeout: Keyword.get(opts, :recv_timeout, 4000)
     }
@@ -21,13 +22,13 @@ defmodule Rex.Client do
   end
 
   @impl true
-  def init(state = %__MODULE__{path: path, send_timeout: send_timeout}) do
+  def init(state = %__MODULE__{path: path, network: network, send_timeout: send_timeout}) do
     opts = [:binary, active: false, send_timeout: send_timeout]
 
     # Connect to local unix socket on `path`
     {:ok, socket} = :gen_tcp.connect({:local, path}, 0, opts)
 
-    :ok = :gen_tcp.send(socket, Messages.handshake())
+    :ok = :gen_tcp.send(socket, Messages.handshake(network))
 
     case :gen_tcp.recv(socket, 0, 5_000) do
       {:ok, full_response} ->
