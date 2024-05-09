@@ -3,5 +3,7 @@ defmodule Rex do
 
   def get_current_era do
     Rex.Client.query(:get_current_era) |> IO.inspect()
+    Rex.Client.query(:get_current_era) |> IO.inspect()
+    Rex.Client.query(:get_current_era) |> IO.inspect()
   end
 end

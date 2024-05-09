@@ -44,17 +44,24 @@ defmodule Rex.Client do
   def handle_call({:local_state_query, :get_current_era}, _from, %{socket: socket} = state) do
     :ok = :gen_tcp.send(socket, Messages.msg_acquire())
 
+    # Must acquire prior to querying
     {:ok, _acquire_response} = :gen_tcp.recv(socket, 0, 5_000)
 
     :ok = :gen_tcp.send(socket, Messages.get_current_era())
 
-    case :gen_tcp.recv(socket, 0, 5_000) do
-      {:ok, full_response} ->
-        {:ok, current_era} = LocalStateQueryResponse.parse_response(full_response)
-        {:reply, current_era, state}
+    reply =
+      case :gen_tcp.recv(socket, 0, 5_000) do
+        {:ok, full_response} ->
+          {:ok, current_era} = LocalStateQueryResponse.parse_response(full_response)
+          {:reply, current_era, state}
 
-      {:error, _reason} ->
-        {:reply, 0, state}
-    end
+        {:error, _reason} ->
+          {:reply, 0, state}
+      end
+
+    # Must release to allow future calls
+    :ok = :gen_tcp.send(socket, Messages.msg_release())
+
+    reply
   end
 end
