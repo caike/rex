@@ -1,4 +1,4 @@
-defmodule ExNode.HandshakeResponse do
+defmodule Rex.HandshakeResponse do
   defstruct [:type, :version_number, :network_magic, :query]
 
   def parse_response([1, version_number, [network_magic, query] = node_to_client_version_data]) do

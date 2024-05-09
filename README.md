@@ -1,3 +1,3 @@
-# ExNode
+# Rex
 
-A Cardano Relay Node in Elixir.
+Elixir implementation of Cardano's Ourobouros mini-protocols.
