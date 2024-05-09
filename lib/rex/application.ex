@@ -6,7 +6,8 @@ defmodule Rex.Application do
   @impl true
   def start(_type, _args) do
     children = [
-      {Rex.Client, client_opts()}
+      {Rex.Client, client_opts()},
+      {Rex.ClientStatem, client_opts()}
     ]
 
     opts = [strategy: :one_for_one, name: Rex.Supervisor]
