@@ -7,8 +7,7 @@ Proof of Concept Elixir implementation of Cardano's Ouroboros networking mini-pr
 Run the following command using your own Cardano node's socket path:
 
 ```bash
-NODE_SOCKET_PATH=/your/cardano/node.socket
-mix query_current_era
+NODE_SOCKET_PATH=/your/cardano/node.socket mix query_current_era
 ```
 
 Catalyst F12 Proposal for further development of this project:
