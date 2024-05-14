@@ -6,16 +6,17 @@ defmodule Rex.Messages do
   def handshake(network) do
     case network do
       :mainnet ->
-        header = [<<0, 0, 1, 52, 0, 0, 0, 63>>]
-
-        payload = [
+        payload =
           <<130, 0, 167, 25, 128, 10, 26, 45, 150, 74, 9, 25, 128, 11, 26, 45, 150, 74, 9, 25,
             128, 12, 26, 45, 150, 74, 9, 25, 128, 13, 26, 45, 150, 74, 9, 25, 128, 14, 26, 45,
             150, 74, 9, 25, 128, 15, 130, 26, 45, 150, 74, 9, 244, 25, 128, 16, 130, 26, 45, 150,
             74, 9, 244>>
-        ]
 
-        [header | payload]
+        payload_size_bytes = <<byte_size(payload)::unsigned-16>>
+        # Todo: protocol + timestamp
+        header = [<<0, 0, 1, 52, 0, 0>> | [payload_size_bytes]]
+
+        [header | [payload]]
 
       :sanchonet ->
         header = [<<0, 0, 0, 110, 0, 0, 0, 35>>]
