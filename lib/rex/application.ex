@@ -17,6 +17,9 @@ defmodule Rex.Application do
   @default_node_socket_path "/tmp/cardano-node.socket"
 
   defp client_opts do
-    [path: System.get_env("NODE_SOCKET_PATH", @default_node_socket_path), network: :mainnet]
+    [
+      socket_path: System.get_env("CARDANO_NODE_SOCKET_PATH", @default_node_socket_path),
+      network: :mainnet
+    ]
   end
 end
