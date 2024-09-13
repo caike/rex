@@ -10,7 +10,7 @@ defmodule Rex.ClientStatem do
 
   require Logger
 
-  defstruct [:path, :socket, :network]
+  defstruct [:path, :socket, :network, queue: :queue.new()]
 
   ##############
   # Public API #
@@ -80,7 +80,8 @@ defmodule Rex.ClientStatem do
     case :gen_tcp.recv(socket, 0, 5_000) do
       {:ok, full_response} ->
         {:ok, _handshake} = HandshakeResponse.parse_response(full_response)
-        {:next_state, :established, data}
+        actions = [{:next_event, :internal, :acquire_agency}]
+        {:next_state, :established_no_agency, data, actions}
 
       {:error, reason} ->
         Logger.error("Error establishing connection #{inspect(reason)}")
@@ -88,31 +89,38 @@ defmodule Rex.ClientStatem do
     end
   end
 
-  def established(
+  def established_no_agency(:internal, :acquire_agency, %__MODULE__{socket: socket} = data) do
+    :ok = :gen_tcp.send(socket, Messages.msg_acquire())
+    {:ok, _acquire_response} = :gen_tcp.recv(socket, 0, 5_000)
+    {:next_state, :established_has_agency, data}
+  end
+
+  def established_no_agency(:info, {:tcp_closed, socket}, %__MODULE__{socket: socket} = data) do
+    Logger.error("Connection closed")
+    {:next_state, :disconnected, data}
+  end
+
+  def established_has_agency(
         {:call, from},
         {:request, :get_current_era},
         %__MODULE__{socket: socket} = data
       ) do
-    :ok = :gen_tcp.send(socket, Messages.msg_acquire())
-
-    # Must acquire prior to querying
-    {:ok, _acquire_response} = :gen_tcp.recv(socket, 0, 5_000)
-
+    :ok = :inet.setopts(socket, active: :once)
     :ok = :gen_tcp.send(socket, Messages.get_current_era())
+    data = update_in(data.queue, &:queue.in(from, &1))
+    {:keep_state, data}
+  end
 
-    reply =
-      case :gen_tcp.recv(socket, 0, 5_000) do
-        {:ok, full_response} ->
-          {:ok, current_era} = LocalStateQueryResponse.parse_response(full_response)
-          {:keep_state_and_data, [{:reply, from, current_era}]}
+  def established_has_agency(:info, {:tcp, socket, bytes}, %__MODULE__{socket: socket} = data) do
+    {:ok, current_era} = LocalStateQueryResponse.parse_response(bytes)
+    {{:value, caller}, data} = get_and_update_in(data.queue, &:queue.out/1)
+    # This action issues the response back to the clinet
+    actions = [{:reply, caller, {:ok, current_era}}]
+    {:keep_state, data, actions}
+  end
 
-        {:error, _reason} ->
-          {:next_state, :disconnected, data}
-      end
-
-    # Must release to allow future calls
-    :ok = :gen_tcp.send(socket, Messages.msg_release())
-
-    reply
+  def established_has_agency(:info, {:tcp_closed, socket}, %__MODULE__{socket: socket} = data) do
+    Logger.error("Connection closed")
+    {:next_state, :disconnected, data}
   end
 end
