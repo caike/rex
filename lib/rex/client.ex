@@ -12,7 +12,7 @@ defmodule Rex.Client do
 
   def start_link(opts) do
     state = %__MODULE__{
-      path: Keyword.fetch!(opts, :path),
+      path: Keyword.fetch!(opts, :socket_path),
       network: Keyword.get(opts, :network, :mainnet),
       send_timeout: Keyword.get(opts, :send_timeout, 4000),
       recv_timeout: Keyword.get(opts, :recv_timeout, 4000)
