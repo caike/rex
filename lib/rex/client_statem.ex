@@ -79,7 +79,8 @@ defmodule Rex.ClientStatem do
 
     case :gen_tcp.recv(socket, 0, 5_000) do
       {:ok, full_response} ->
-        {:ok, _handshake} = HandshakeResponse.parse_response(full_response)
+        {:ok, handshake} = HandshakeResponse.parse_response(full_response)
+        IO.inspect(handshake)
         actions = [{:next_event, :internal, :acquire_agency}]
         {:next_state, :established_no_agency, data, actions}
 

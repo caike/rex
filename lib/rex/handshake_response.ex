@@ -7,7 +7,7 @@ defmodule Rex.HandshakeResponse do
 
     case CBOR.decode(response_payload) do
       {:ok, decoded, ""} ->
-        {:ok, parse_cbor(decoded)}
+        parse_cbor(decoded)
 
       {:error, _reason} ->
         {:error, :error_decoding_cbor}
