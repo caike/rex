@@ -12,6 +12,15 @@ defmodule Rex.Messages do
             150, 74, 9, 25, 128, 15, 130, 26, 45, 150, 74, 9, 244, 25, 128, 16, 130, 26, 45, 150,
             74, 9, 244>>
 
+        # payload =
+        # <<130, 0, 161, 25, 128, 16, 130, 26, 45, 150, 74, 9, 244>>
+
+        # payload =
+        #  <<130, 0, 161, 25, 128, 12, 26, 45, 150, 74, 9>>
+
+        # N2N v13
+        # payload = <<130, 0, 161, 13, 132, 26, 45, 150, 74, 9, 244, 0, 244>>
+
         payload_size_bytes = <<byte_size(payload)::unsigned-16>>
         # Todo: protocol + timestamp
         header = [<<0, 0, 1, 52, 0, 0>> | [payload_size_bytes]]

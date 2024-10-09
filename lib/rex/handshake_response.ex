@@ -32,6 +32,21 @@ defmodule Rex.HandshakeResponse do
     end
   end
 
+  # msgRefuse
+  defp parse_cbor([2, refuseReason]) do
+    case refuseReason do
+      # TODO: return accepted versions
+      [0, _version_number_binary] ->
+        {:error, %__MODULE__{type: :version_mismatch}}
+
+      [1, _anyVersionNumber, _tstr] ->
+        {:error, %__MODULE__{type: :handshake_decode_error}}
+
+      [2, _anyVersionNumber, _tstr] ->
+        {:error, %__MODULE__{type: :refused}}
+    end
+  end
+
   defp parse_cbor(_), do: {:error, :unsupported_message_type}
 
   # Validates version number according to CDDL definition (32783 or 32784)
