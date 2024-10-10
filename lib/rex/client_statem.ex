@@ -66,8 +66,7 @@ defmodule Rex.ClientStatem do
         %__MODULE__{client: client, path: path, port: port} = data
       ) do
     case client.connect(
-           # TODO: pull tuple out for socket type connection
-           ~c[#{path}],
+           maybe_parse_path(path),
            port,
            tcp_opts(client, path)
          ) do
@@ -160,8 +159,11 @@ defmodule Rex.ClientStatem do
   defp maybe_local_path(path, "socket"), do: {:local, path}
   defp maybe_local_path(path, _), do: path
 
-  def maybe_local_port(_port, "socket"), do: 0
-  def maybe_local_port(port, _), do: port
+  defp maybe_local_port(_port, "socket"), do: 0
+  defp maybe_local_port(port, _), do: port
+
+  defp maybe_parse_path(path) when is_binary(path), do: ~c[#{path}]
+  defp maybe_parse_path(path), do: path
 
   defp tcp_lib("ssl"), do: :ssl
   defp tcp_lib(_), do: :gen_tcp
