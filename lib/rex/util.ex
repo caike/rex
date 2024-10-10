@@ -1,4 +1,4 @@
-defmodule Rex.Messages.Util do
+defmodule Rex.Util do
   @doc """
   Unwrap the multiplexer header from the CDDL message.
   """

@@ -5,10 +5,9 @@ defmodule Rex.ClientStatem do
   @behaviour :gen_statem
 
   # alias Hex.API.Key
-  alias Rex.HandshakeResponse
+  alias Rex.Handshake
   alias Rex.LocalStateQueryResponse
   alias Rex.Messages
-  alias Rex.Messages.Handshake
 
   require Logger
 
@@ -89,21 +88,17 @@ defmodule Rex.ClientStatem do
   def connected(
         :internal,
         :establish,
-        %__MODULE{client: client, socket: socket, network: network} = data
+        %__MODULE__{client: client, socket: socket, network: network} = data
       ) do
     :ok =
       client.send(
         socket,
-        Handshake.propose_version_message(@active_n2c_versions, network)
+        Handshake.Propose.new_version_message(@active_n2c_versions, network)
       )
 
     case client.recv(socket, 0, 5_000) do
       {:ok, full_response} ->
-        {:ok, handshake} = HandshakeResponse.parse_response(full_response)
-        dbg(handshake)
-
-        {:ok, version} = Handshake.validate_propose_version_response(full_response)
-        dbg(version)
+        {:ok, _handshake_response} = Handshake.Response.validate(full_response)
 
         actions = [{:next_event, :internal, :acquire_agency}]
         {:next_state, :established_no_agency, data, actions}
