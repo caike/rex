@@ -102,7 +102,8 @@ defmodule Rex.ClientStatem do
         {:ok, handshake} = HandshakeResponse.parse_response(full_response)
         dbg(handshake)
 
-        Handshake.validate_propose_version_response(full_response)
+        {:ok, version} = Handshake.validate_propose_version_response(full_response)
+        dbg(version)
 
         actions = [{:next_event, :internal, :acquire_agency}]
         {:next_state, :established_no_agency, data, actions}

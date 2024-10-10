@@ -7,12 +7,10 @@ defmodule Rex.Messages.Handshake do
 
   @type network_type :: :mainnet | :preprod | :preview | :sanchonet
 
-  @handshake_message [
-    msg_propose_versions: 0,
-    msg_accept_version: 1,
-    msg_refuse: 2,
-    msg_query_reply: 3
-  ]
+  @msg_propose_versions 0
+  @msg_accept_version 1
+  @msg_refuse 2
+  # @msg_query_reply 3
 
   @network_magic [
     mainnet: 764_824_073,
@@ -40,7 +38,7 @@ defmodule Rex.Messages.Handshake do
   def propose_version_message(versions, network) do
     payload =
       [
-        @handshake_message[:msg_propose_versions],
+        @msg_propose_versions,
         build_version_fragments(versions |> Enum.sort(), network)
       ]
       |> CBOR.encode()
@@ -50,10 +48,17 @@ defmodule Rex.Messages.Handshake do
 
   def validate_propose_version_response(response) do
     %{payload: payload} = Util.plex(response)
-    dbg(CBOR.decode(payload))
 
-    # TODO NEXT: separate validation and propose, since different CBOR integers?
-    #  {:ok, [1, 32784, [764824073, false]], ""}
+    case CBOR.decode(payload) do
+      {:ok, [@msg_accept_version, version, [_magic, _query]], ""} ->
+        {:ok, version}
+
+      {:ok, [@msg_refuse, reason], ""} ->
+        {:refused, reason}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
   end
 
   defp build_version_fragments(versions, network),
