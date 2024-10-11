@@ -4,7 +4,6 @@ defmodule Rex.ClientStatem do
   """
   @behaviour :gen_statem
 
-  # alias Hex.API.Key
   alias Rex.Handshake
   alias Rex.LocalStateQueryResponse
   alias Rex.Messages
