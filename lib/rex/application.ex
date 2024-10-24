@@ -6,7 +6,6 @@ defmodule Rex.Application do
   @impl true
   def start(_type, _args) do
     children = [
-      # {Rex.Client, client_opts()},
       {Rex.ClientStatem, client_opts()}
     ]
 
@@ -14,7 +13,7 @@ defmodule Rex.Application do
     Supervisor.start_link(children, opts)
   end
 
-  # @default_node_socket_path "/tmp/cardano-node.socket"
+  @default_node_socket_path "/tmp/cardano_node.socket"
 
   defp client_opts do
     dbg(System.get_env("CARDANO_NODE_SOCKET_PATH"))
