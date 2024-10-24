@@ -16,8 +16,12 @@ defmodule Rex.Application do
   @default_node_socket_path "/tmp/cardano_node.socket"
 
   defp client_opts do
+    dbg(System.get_env("CARDANO_NODE_SOCKET_PATH"))
+
     [
-      socket_path: System.get_env("CARDANO_NODE_SOCKET_PATH", @default_node_socket_path),
+      node_port: System.get_env("CARDANO_NODE_PORT", "9443") |> String.to_integer(),
+      node_url: System.get_env("CARDANO_NODE_URL"),
+      socket_path: System.get_env("CARDANO_NODE_SOCKET_PATH"),
       network: :mainnet
     ]
   end
