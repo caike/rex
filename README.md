@@ -42,5 +42,5 @@ Make sure the `CARDANO_NODE_SOCKET_PATH` is not set, or it will override the URL
 
 ## Catalyst Proposal
 
-F12 proposal for further development of this project:
-https://cardano.ideascale.com/c/idea/122664
+F13 proposal for further development of this project:
+[https://cardano.ideascale.com/c/cardano/idea/131598](https://cardano.ideascale.com/c/cardano/idea/131598)

@@ -13,7 +13,7 @@ defmodule Rex.Application do
     Supervisor.start_link(children, opts)
   end
 
-  # @default_node_socket_path "/tmp/cardano-node.socket"
+  @default_node_socket_path "/tmp/cardano_node.socket"
 
   defp client_opts do
     network = System.get_env("CARDANO_NETWORK", "mainnet") |> String.to_atom()
