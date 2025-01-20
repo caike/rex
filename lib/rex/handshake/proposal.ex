@@ -1,4 +1,4 @@
-defmodule Rex.Handshake.Propose do
+defmodule Rex.Handshake.Proposal do
   @moduledoc """
   Builds handshake messages for node-to-client communication.
   """
@@ -27,8 +27,8 @@ defmodule Rex.Handshake.Propose do
   @doc """
   Version numbers must be unique and appear in ascending order.
   """
-  @spec new_version_message([integer()], network_type) :: binary()
-  def new_version_message(versions, network) do
+  @spec version_message([integer()], network_type) :: binary()
+  def version_message(versions, network) do
     payload =
       [
         # msgProposeVersions

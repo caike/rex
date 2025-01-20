@@ -92,7 +92,7 @@ defmodule Rex.ClientStatem do
     :ok =
       client.send(
         socket,
-        Handshake.Propose.new_version_message(@active_n2c_versions, network)
+        Handshake.Proposal.version_message(@active_n2c_versions, network)
       )
 
     case client.recv(socket, 0, 5_000) do

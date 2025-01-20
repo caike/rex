@@ -1,6 +1,6 @@
-defmodule Rex.Messages.HandshakeTest do
+defmodule Rex.Handshake.ProposalTest do
   use ExUnit.Case
-  alias Rex.Messages.Handshake
+  alias Rex.Handshake
 
   # <<45, 150, 74, 9>>
   @mainnet_magic 764_824_073
@@ -8,11 +8,11 @@ defmodule Rex.Messages.HandshakeTest do
   # These 16 bits represent the M value (0 for initiator) and the protocol ID (0 for Handshake)
   @protocol_id <<0, 0>>
 
-  describe "build_propose_version_message/2" do
+  describe "version_message/2" do
     test "builds the correct message for versions 10 and up on mainnet" do
       <<_timestamps_lower_32::binary-size(4), @protocol_id, payload_size::binary-size(2),
         payload::binary>> =
-        Handshake.propose_version_message([10, 11, 12, 13, 14, 15, 16], :mainnet)
+        Handshake.Proposal.version_message([10, 11, 12, 13, 14, 15, 16], :mainnet)
 
       {:ok, message, ""} = CBOR.decode(payload)
 
