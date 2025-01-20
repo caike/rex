@@ -4,15 +4,16 @@ defmodule Rex.ClientStatem do
   """
   @behaviour :gen_statem
 
-  alias Rex.HandshakeResponse
+  alias Rex.Handshake
   alias Rex.LocalStateQueryResponse
   alias Rex.Messages
 
   require Logger
 
   @basic_tcp_opts [:binary, active: false, send_timeout: 4_000]
+  @active_n2c_versions [9, 10, 11, 12, 13, 14, 15, 16]
 
-  defstruct [:node_port, :node_url, :path, :socket, :network, queue: :queue.new()]
+  defstruct [:client, :path, :port, :socket, :network, queue: :queue.new()]
 
   ##############
   # Public API #
@@ -22,12 +23,12 @@ defmodule Rex.ClientStatem do
     :gen_statem.call(pid, {:request, query_name})
   end
 
-  def start_link(opts) do
+  def start_link(network: network, path: path, port: port, type: type) do
     data = %__MODULE__{
-      node_port: Keyword.fetch!(opts, :node_port),
-      node_url: Keyword.fetch!(opts, :node_url),
-      path: Keyword.fetch!(opts, :socket_path),
-      network: Keyword.get(opts, :network, :mainnet),
+      client: tcp_lib(type),
+      path: maybe_local_path(path, type),
+      port: maybe_local_port(port, type),
+      network: network,
       socket: nil
     }
 
@@ -57,12 +58,15 @@ defmodule Rex.ClientStatem do
     {:ok, :disconnected, data, actions}
   end
 
-  def disconnected(:internal, :connect, %__MODULE__{node_url: node_url, path: path} = data) do
-    # Connect to local unix socket on `path`
-    case tcp_lib(data.path).connect(
-           node_path(%{socket_path: path, node_url: node_url}),
-           node_port(data.path),
-           tcp_opts(data.path, node_url)
+  def disconnected(
+        :internal,
+        :connect,
+        %__MODULE__{client: client, path: path, port: port} = data
+      ) do
+    case client.connect(
+           maybe_parse_path(path),
+           port,
+           tcp_opts(client, path)
          ) do
       {:ok, socket} ->
         data = %__MODULE__{data | socket: socket}
@@ -80,13 +84,21 @@ defmodule Rex.ClientStatem do
     {:keep_state, data, actions}
   end
 
-  def connected(:internal, :establish, %__MODULE{socket: socket, network: network} = data) do
-    :ok = tcp_lib(data.path).send(socket, Messages.handshake(network))
+  def connected(
+        :internal,
+        :establish,
+        %__MODULE__{client: client, socket: socket, network: network} = data
+      ) do
+    :ok =
+      client.send(
+        socket,
+        Handshake.Proposal.version_message(@active_n2c_versions, network)
+      )
 
-    case tcp_lib(data.path).recv(socket, 0, 5_000) do
+    case client.recv(socket, 0, 5_000) do
       {:ok, full_response} ->
-        {:ok, handshake} = HandshakeResponse.parse_response(full_response)
-        IO.inspect(handshake)
+        {:ok, _handshake_response} = Handshake.Response.validate(full_response)
+
         actions = [{:next_event, :internal, :acquire_agency}]
         {:next_state, :established_no_agency, data, actions}
 
@@ -96,9 +108,13 @@ defmodule Rex.ClientStatem do
     end
   end
 
-  def established_no_agency(:internal, :acquire_agency, %__MODULE__{socket: socket} = data) do
-    :ok = tcp_lib(data.path).send(socket, Messages.msg_acquire())
-    {:ok, _acquire_response} = tcp_lib(data.path).recv(socket, 0, 5_000)
+  def established_no_agency(
+        :internal,
+        :acquire_agency,
+        %__MODULE__{client: client, socket: socket} = data
+      ) do
+    :ok = client.send(socket, Messages.msg_acquire())
+    {:ok, _acquire_response} = client.recv(socket, 0, 5_000)
     {:next_state, :established_has_agency, data}
   end
 
@@ -110,10 +126,10 @@ defmodule Rex.ClientStatem do
   def established_has_agency(
         {:call, from},
         {:request, :get_current_era},
-        %__MODULE__{socket: socket} = data
+        %__MODULE__{client: client, socket: socket} = data
       ) do
-    :ok = setopts_lib(data.path).setopts(socket, active: :once)
-    :ok = tcp_lib(data.path).send(socket, Messages.get_current_era())
+    :ok = setopts_lib(client).setopts(socket, active: :once)
+    :ok = client.send(socket, Messages.get_current_era())
     data = update_in(data.queue, &:queue.in(from, &1))
     {:keep_state, data}
   end
@@ -135,27 +151,29 @@ defmodule Rex.ClientStatem do
     {:next_state, :disconnected, data}
   end
 
-  defp node_path(%{socket_path: nil, node_url: nil}), do: raise("No node path or URL provided")
-  defp node_path(%{socket_path: nil, node_url: url}), do: ~c"#{url}"
-  defp node_path(%{socket_path: path, node_url: _}), do: {:local, ~c"#{path}"}
+  defp maybe_local_path(path, "socket"), do: {:local, path}
+  defp maybe_local_path(path, _), do: path
 
-  defp node_port(nil), do: 9443
-  defp node_port(_), do: 0
+  defp maybe_local_port(_port, "socket"), do: 0
+  defp maybe_local_port(port, _), do: port
 
-  defp tcp_lib(nil), do: :ssl
+  defp maybe_parse_path(path) when is_binary(path), do: ~c[#{path}]
+  defp maybe_parse_path(path), do: path
+
+  defp tcp_lib("ssl"), do: :ssl
   defp tcp_lib(_), do: :gen_tcp
 
-  defp tcp_opts(nil, url),
+  defp tcp_opts(:ssl, path),
     do:
       @basic_tcp_opts ++
         [
           verify: :verify_none,
-          server_name_indication: ~c"#{url}",
+          server_name_indication: ~c"#{path}",
           secure_renegotiate: true
         ]
 
   defp tcp_opts(_, _), do: @basic_tcp_opts
 
-  defp setopts_lib(nil), do: :ssl
+  defp setopts_lib(:ssl), do: :ssl
   defp setopts_lib(_), do: :inet
 end
